@@ -127,7 +127,7 @@ class DLDataLoader(Sequence):
         batch_indices = self.indices[
             index * self.batch_size : (index + 1) * self.batch_size
         ]
-       features, labels = None, None
+        features, labels = None, None
         if self.DLDataReader.mode == "mono":
                 batch = self.DLDataReader.generate_mono_batch(batch_indices)
                 features, labels = self._get_mono_item(batch)
