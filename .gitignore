@@ -1,5 +1,5 @@
 ctlearn/_version.py
-
+output_dir2/
 *.swp
 *.swo
 *.gemini
@@ -28,12 +28,11 @@ dist
 .pytest_cache/
 # Sphinx documentation
 docs/build/
-
+build/
 # Default pytorch output
 run/
-test/
-*.se2
-*.jar
 *.puml
-mc_tjark/
+*.jar
+*.se2
 calibration/
+test/train
