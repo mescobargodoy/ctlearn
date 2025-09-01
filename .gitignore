@@ -36,3 +36,4 @@ run/
 *.se2
 calibration/
 test/train
+test_local_cristian/
