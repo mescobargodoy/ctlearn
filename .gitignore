@@ -36,3 +36,4 @@ run/
 *.se2
 calibration/
 test/train
+test/prepare_file.py
