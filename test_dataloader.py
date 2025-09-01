@@ -17,7 +17,7 @@ parameters = read_configuration(config_file)
 
 #dl1_gamma_file = ["/storage/ctlearn_data/h5_files/mc/gamma_theta_16.087_az_108.090_runs123-182.r1.dl1.h5"]
 #dl1_gamma_file = ["/storage/ctlearn_data/h5_files/lstchain_real_data/DL1/dl1_LST-1.Run02929.0013.h5"]
-dl1_gamma_file = ["/storage/ctlearn_data/h5_files/mc/proton_theta_16.087_az_108.090_runs1-416.r1.dl1.h5"]
+dl1_gamma_file = ["/lustre/ific.uv.es/ml/ucm147/datasets/TestDataMC/gamma_theta_10.0_az_248.117_runs1-500.dl1.h5"]
 
 
 dl1dh_reader = DLDataReader.from_name(
@@ -47,7 +47,7 @@ training_loader = DLDataLoader.create(
     parameters = parameters
 )
 
-for batch_idx, (features, labels) in enumerate(training_loader):
+for batch_idx, (features, labels,t) in enumerate(training_loader):
 
     plt.rcParams['keymap.quit'].append(' ')
     fig, axes = plt.subplots(1, 2, figsize=(15, 5))

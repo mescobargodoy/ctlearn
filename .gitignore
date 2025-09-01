@@ -37,3 +37,4 @@ run/
 calibration/
 test/train
 test/prepare_file.py
+test_local_cristian/
