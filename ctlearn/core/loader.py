@@ -178,6 +178,8 @@ class DLDataLoader(Sequence):
                 ),
                 axis=1,
             )
+        if "xmax" in self.tasks:
+            labels["xmax"] = batch["true_x_max"].data
         if "skydirection" in self.tasks:
             labels["skydirection"] = np.stack(
                 (
@@ -231,6 +233,7 @@ class DLDataLoader(Sequence):
         true_shower_primary_class = []
         log_true_energy = []
         core_x, core_y = [], []
+        xmax = []
         fov_lon, fov_lat, angular_separation = [], [], []
         cam_coord_offset_x, cam_coord_offset_y, cam_coord_distance = [], [], []
         for group_element in batch_grouped.groups:
@@ -272,6 +275,8 @@ class DLDataLoader(Sequence):
             if "impact" in self.tasks:
                 core_x = group_element["true_core_x"].data[0]
                 core_y = group_element["true_core_y"].data[0]
+            if "xmax" in self.tasks:
+                xmax = group_element["true_x_max"].data[0]
             if "skydirection" in self.tasks:
                 fov_lon.append(group_element["fov_lon"].data[0])
                 fov_lat.append(
@@ -305,6 +310,8 @@ class DLDataLoader(Sequence):
                 ),
                 axis=1,
             )
+        if "xmax" in self.tasks:
+            labels["xmax"] = np.array(xmax)
         if "skydirection" in self.tasks:
             labels["skydirection"] = np.stack(
                 (

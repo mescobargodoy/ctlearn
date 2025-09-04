@@ -254,6 +254,48 @@ class StereoPredictCTLearnModel(PredictCTLearnModel):
                     self.output_path,
                     f"{DL2_SUBARRAY_GROUP}/impact/{self.prefix}",
                 )
+        xmax_feature_vectors = None
+        if self.load_xmax_model_from is not None:
+            # Predict the impact of the primary particle
+            xmax_table, xmax_feature_vectors = super()._predict_xmax(
+                example_identifiers
+            )
+            if self.dl2_subarray:
+                # Produce output table with NaNs for missing predictions
+                if len(nonexample_identifiers) > 0:
+                    nan_table = super()._create_nan_table(
+                        nonexample_identifiers,
+                        columns=[f"{self.prefix}_tel_xmax"],
+                        shapes=[(len(nonexample_identifiers),)],
+                    )
+                    xmax_table = vstack([xmax_table, nan_table])
+                # Add is_valid column to the impact table
+                xmax_table.add_column(
+                    ~np.isnan(
+                        xmax_table[f"{self.prefix}_tel_xmax"].data, dtype=bool
+                    ),
+                    name=f"{self.prefix}_tel_is_valid",
+                )
+                # Rename the columns for the stereo mode
+                xmax_table.rename_column(
+                    f"{self.prefix}_tel_xmax", f"{self.prefix}_xmax"
+                )
+                xmax_table.rename_column(
+                    f"{self.prefix}_tel_is_valid", f"{self.prefix}_is_valid"
+                )
+                xmax_table.sort(SUBARRAY_EVENT_KEYS)
+                # Save the prediction to the output file
+                write_table(
+                    xmax_table,
+                    self.output_path,
+                    f"{DL2_SUBARRAY_GROUP}/xmax/{self.prefix}",
+                    overwrite=self.overwrite_tables,
+                )
+                self.log.info(
+                    "DL2 prediction data was stored in '%s' under '%s'",
+                    self.output_path,
+                    f"{DL2_SUBARRAY_GROUP}/xmax/{self.prefix}",
+                )
         direction_feature_vectors = None
         if self.load_skydirection_model_from is not None:
             # Join the prediction table with the telescope pointing table
@@ -317,6 +359,7 @@ class StereoPredictCTLearnModel(PredictCTLearnModel):
                 energy_feature_vectors,
                 direction_feature_vectors,
                 impact_feature_vectors,
+                xmax_feature_vectors,
             )
             # Loop over the selected telescopes and store the feature vectors
             # for each telescope in the output file. The feature vectors are stored
@@ -333,6 +376,10 @@ class StereoPredictCTLearnModel(PredictCTLearnModel):
             feature_vector_table.rename_column(
                 f"{self.prefix}_tel_impact_feature_vectors",
                 f"{self.prefix}_impact_feature_vectors",
+            )
+            feature_vector_table.rename_column(
+                f"{self.prefix}_tel_xmax_feature_vectors",
+                f"{self.prefix}_xmax_feature_vectors",
             )
             feature_vector_table.rename_column(
                 f"{self.prefix}_tel_geometry_feature_vectors",

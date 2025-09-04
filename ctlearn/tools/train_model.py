@@ -42,6 +42,7 @@ class TrainCTLearnModel(Tool):
     - Regression of the primary particle arrival direction based on the offsets in camera coordinates
     - Regression of the primary particle arrival direction based on the offsets in sky coordinates
     - Regression of the primary particle core position on the ground
+    - Regression of the primary particle shower maximum
     """
 
     name = "ctlearn-train-model"
@@ -77,6 +78,17 @@ class TrainCTLearnModel(Tool):
         --DLImageReader.image_mapper_type=OversamplingMapper \\
         --output /path/to/your/impact/ \\
         --reco impact \\
+
+    To train a CTLearn model for the regression of the primary particle
+    shower maximum:
+    > ctlearn-train-model \\
+        --signal /path/to/your/muons_dl1_dir/ \\
+        --pattern-signal "muon_*_run1.dl1.h5" \\
+        --pattern-signal "muon_*_run10.dl1.h5" \\
+        --DLImageReader.channels=cleaned_image \\
+        --DLImageReader.image_mapper_type=OversamplingMapper \\
+        --output /path/to/your/xmax/ \\
+        --reco xmax \\
 
     To train a CTLearn model for the regression of the primary particle
     arrival direction based on the offsets in camera coordinates:
@@ -162,7 +174,7 @@ class TrainCTLearnModel(Tool):
     ).tag(config=True)
 
     reco_tasks = List(
-        trait=CaselessStrEnum(["type", "energy", "cameradirection", "skydirection", "impact"]),
+        trait=CaselessStrEnum(["type", "energy", "cameradirection", "skydirection", "impact", "xmax"]),
         allow_none=False,
         help=(
             "List of reconstruction tasks to perform. "
@@ -171,6 +183,7 @@ class TrainCTLearnModel(Tool):
             "'cameradirection': regression of the primary particle arrival direction in camera coordinates "
             "'skydirection': regression of the primary particle arrival direction in sky coordinates"
             "'impact': regression of the primary particle core position on the ground (impact point)"
+            "'xmax': regression of the primary particle shower maximum"
         )
     ).tag(config=True)
 
@@ -545,6 +558,11 @@ class TrainCTLearnModel(Tool):
                 reduction="sum_over_batch_size"
             )
             metrics["impact"] = keras.metrics.MeanAbsoluteError(name="mae_impact")
+        if "xmax" in self.reco_tasks:
+            losses["xmax"] = keras.losses.MeanAbsoluteError(
+                reduction="sum_over_batch_size"
+            )
+            metrics["xmax"] = keras.metrics.MeanAbsoluteError(name="mae_xmax")
         if "skydirection" in self.reco_tasks:
             losses["skydirection"] = keras.losses.MeanAbsoluteError(
                 reduction="sum_over_batch_size"

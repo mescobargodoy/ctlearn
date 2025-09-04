@@ -136,7 +136,7 @@ class PredictCTLearnModel(Tool):
         Create a table with NaNs for missing predictions.
     _store_pointing(all_identifiers)
         Store the telescope pointing table from to the output file.
-    _create_feature_vectors_table(example_identifiers, nonexample_identifiers, classification_feature_vectors, energy_feature_vectors, direction_feature_vectors, impact_feature_vectors)
+    _create_feature_vectors_table(example_identifiers, nonexample_identifiers, classification_feature_vectors, energy_feature_vectors, direction_feature_vectors, impact_feature_vectors, xmax_feature_vectors)
         Create the table for the DL1 feature vectors.
     """
 
@@ -240,6 +240,18 @@ class PredictCTLearnModel(Tool):
         file_ok=True,
     ).tag(config=True)
 
+    load_xmax_model_from = Path(
+        default_value=None,
+        help=(
+            "Path to a Keras model file (Keras3) or directory (Keras2) for the regression "
+            "of the primary particle shower maximum."
+        ),
+        allow_none=True,
+        exists=True,
+        directory_ok=True,
+        file_ok=True,
+    ).tag(config=True)
+
     load_cameradirection_model_from = Path(
         default_value=None,
         help=(
@@ -298,6 +310,7 @@ class PredictCTLearnModel(Tool):
         ("t", "type_model"): "PredictCTLearnModel.load_type_model_from",
         ("e", "energy_model"): "PredictCTLearnModel.load_energy_model_from",
         ("p", "impact_model"): "PredictCTLearnModel.load_impact_model_from",
+        ("x", "xmax_model"): "PredictCTLearnModel.load_xmax_model_from",
         (
             "d",
             "cameradirection_model",
@@ -611,6 +624,20 @@ class PredictCTLearnModel(Tool):
         impact_table.add_column(predict_data["impact"].T[0], name=f"{self.prefix}_tel_impact_x")
         impact_table.add_column(predict_data["impact"].T[1], name=f"{self.prefix}_tel_impact_y")
         return impact_table, feature_vectors
+
+    def _predict_xmax(self, example_identifiers):
+        """
+        Predict the shower maximum of the primary particle.
+        """
+        self.log.info("Predicting for the regression of the primary particle shower maximum...")
+        # Predict the data using the loaded xmax_model
+        predict_data, feature_vectors = self._predict_with_model(
+            self.load_xmax_model_from
+        )
+        # Create prediction table and add the predicted shower maximum
+        xmax_table = example_identifiers.copy()
+        xmax_table.add_column(predict_data["xmax"].T[0], name=f"{self.prefix}_tel_xmax")
+        return xmax_table, feature_vectors
 
     def _predict_cameradirection(self, example_identifiers):
         """
@@ -954,6 +981,7 @@ class PredictCTLearnModel(Tool):
         energy_feature_vectors=None,
         direction_feature_vectors=None,
         impact_feature_vectors=None,
+        xmax_feature_vectors=None,
     ):
         """
         Create the table for the DL1 feature vectors.
@@ -976,6 +1004,8 @@ class PredictCTLearnModel(Tool):
             Array containing the direction feature vectors.
         impact_feature_vectors : np.ndarray or None
             Array containing the impact feature vectors.
+        xmax_feature_vectors : np.ndarray or None
+            Array containing the xmax feature vectors.
 
         Returns:
         --------
@@ -1045,7 +1075,20 @@ class PredictCTLearnModel(Tool):
                         len(nonexample_identifiers),
                         impact_feature_vectors.shape[1],
                     )
-                ) 
+                )
+        if xmax_feature_vectors is not None:
+            is_valid_col = ~np.isnan(np.min(xmax_feature_vectors, axis=1), dtype=bool)
+            feature_vector_table.add_column(
+                xmax_feature_vectors, name=f"{self.prefix}_tel_xmax_feature_vectors"
+            )
+            if nonexample_identifiers is not None:
+                columns_list.append(f"{self.prefix}_tel_xmax_feature_vectors")
+                shapes_list.append(
+                    (
+                        len(nonexample_identifiers),
+                        xmax_feature_vectors.shape[1],
+                    )
+                )
         # Produce output table with NaNs for missing predictions
         if nonexample_identifiers is not None:
             if len(nonexample_identifiers) > 0:
