@@ -105,13 +105,13 @@ class CTLearnModel(Component):
             "cameradirection": "tanh",
             "skydirection": "tanh",
             "impact": "tanh",
-            "xmax": "tanh",
+            "xmax": "relu",
         },
         allow_none=False,
         help=(
             "Dictionary containing the activation function for the fully connected head for each "
             "task ('type', 'energy', 'cameradirection', 'skydirection', 'impact', 'xmax'). Note: The default activation functions "
-            "are 'relu' for 'type' and 'energy' tasks, and 'tanh' for 'cameradirection', 'skydirection', 'impact' and 'xmax' tasks. "
+            "are 'relu' for 'type', 'energy' and 'xmax' tasks, and 'tanh' for 'cameradirection', 'skydirection' and 'impact' tasks. "
             "The 'type' task uses 'softmax' as the final activation function."
         ),
     ).tag(config=True)
