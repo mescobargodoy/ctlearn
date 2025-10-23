@@ -296,6 +296,48 @@ class StereoPredictCTLearnModel(PredictCTLearnModel):
                     self.output_path,
                     f"{DL2_SUBARRAY_GROUP}/xmax/{self.prefix}",
                 )
+        first_int_depth_feature_vectors = None
+        if self.load_first_int_depth_model_from is not None:
+            # Predict the impact of the primary particle
+            xfirst_int_depth_table, first_int_depth_feature_vectors = super()._predict_first_int_depth(
+                example_identifiers
+            )
+            if self.dl2_subarray:
+                # Produce output table with NaNs for missing predictions
+                if len(nonexample_identifiers) > 0:
+                    nan_table = super()._create_nan_table(
+                        nonexample_identifiers,
+                        columns=[f"{self.prefix}_tel_first_int_depth"],
+                        shapes=[(len(nonexample_identifiers),)],
+                    )
+                    first_int_depth_table = vstack([first_int_depth_table, nan_table])
+                # Add is_valid column to the impact table
+                first_int_depth_table.add_column(
+                    ~np.isnan(
+                        first_int_depth_table[f"{self.prefix}_tel_first_int_depth"].data, dtype=bool
+                    ),
+                    name=f"{self.prefix}_tel_is_valid",
+                )
+                # Rename the columns for the stereo mode
+                first_int_depth_table.rename_column(
+                    f"{self.prefix}_tel_first_int_depth", f"{self.prefix}_first_int_depth"
+                )
+                first_int_depth_table.rename_column(
+                    f"{self.prefix}_tel_is_valid", f"{self.prefix}_is_valid"
+                )
+                first_int_depth_table.sort(SUBARRAY_EVENT_KEYS)
+                # Save the prediction to the output file
+                write_table(
+                    first_int_depth_table,
+                    self.output_path,
+                    f"{DL2_SUBARRAY_GROUP}/first_int_depth/{self.prefix}",
+                    overwrite=self.overwrite_tables,
+                )
+                self.log.info(
+                    "DL2 prediction data was stored in '%s' under '%s'",
+                    self.output_path,
+                    f"{DL2_SUBARRAY_GROUP}/first_int_depth/{self.prefix}",
+                )
         direction_feature_vectors = None
         if self.load_skydirection_model_from is not None:
             # Join the prediction table with the telescope pointing table
@@ -360,6 +402,7 @@ class StereoPredictCTLearnModel(PredictCTLearnModel):
                 direction_feature_vectors,
                 impact_feature_vectors,
                 xmax_feature_vectors,
+                first_int_depth_feature_vectors,
             )
             # Loop over the selected telescopes and store the feature vectors
             # for each telescope in the output file. The feature vectors are stored
@@ -380,6 +423,10 @@ class StereoPredictCTLearnModel(PredictCTLearnModel):
             feature_vector_table.rename_column(
                 f"{self.prefix}_tel_xmax_feature_vectors",
                 f"{self.prefix}_xmax_feature_vectors",
+            )
+            feature_vector_table.rename_column(
+                f"{self.prefix}_tel_first_int_depth_feature_vectors",
+                f"{self.prefix}_first_int_depth_feature_vectors",
             )
             feature_vector_table.rename_column(
                 f"{self.prefix}_tel_geometry_feature_vectors",

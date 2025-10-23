@@ -416,6 +416,51 @@ class MonoPredictCTLearnModel(PredictCTLearnModel):
             if self.dl2_subarray:
                 raise NotImplementedError("No xmax reconstruction property in ctapipe defined. No stereo combiner available.")
 
+        first_int_depth_feature_vectors = None
+        if self.load_first_int_depth_model_from is not None:
+            # Predict the impact of the primary particle
+            first_int_depth_table, first_int_depth_feature_vectors = super()._predict_first_int_depth(
+                example_identifiers
+            )
+            if self.dl2_telescope:
+                # Produce output table with NaNs for missing predictions
+                if len(nonexample_identifiers) > 0:
+                    nan_table = super()._create_nan_table(
+                        nonexample_identifiers,
+                        columns=[f"{self.prefix}_tel_first_int_depth"],
+                        shapes=[(len(nonexample_identifiers),)],
+                    )
+                    first_int_depth_table = vstack([first_int_depth_table, nan_table])
+                # Add is_valid column to the impact table
+                first_int_depth_table.add_column(
+                    ~np.isnan(
+                        first_int_depth_table[f"{self.prefix}_tel_first_int_depth"].data, dtype=bool
+                    ),
+                    name=f"{self.prefix}_tel_is_valid",
+                )
+                for tel_id in self.dl1dh_reader.selected_telescopes[
+                    self.dl1dh_reader.tel_type
+                ]:
+                    # Retrieve the example identifiers for the selected telescope
+                    telescope_mask = first_int_depth_table["tel_id"] == tel_id
+                    first_int_depth_tel_table = first_int_depth_table[telescope_mask]
+                    first_int_depth_tel_table.sort(TELESCOPE_EVENT_KEYS)
+                    # Save the prediction to the output file
+                    write_table(
+                        first_int_depth_tel_table,
+                        self.output_path,
+                        f"{DL2_TELESCOPE_GROUP}/first_int_depth/{self.prefix}/tel_{tel_id:03d}",
+                        overwrite=self.overwrite_tables,
+                    )
+                    self.log.info(
+                        "DL2 prediction data was stored in '%s' under '%s'",
+                        self.output_path,
+                        f"{DL2_TELESCOPE_GROUP}/first_int_depth/{self.prefix}/tel_{tel_id:03d}",
+                    )
+            
+            if self.dl2_subarray:
+                raise NotImplementedError("No first_int_depth reconstruction property in ctapipe defined. No stereo combiner available.")
+
         direction_feature_vectors = None
         if self.load_cameradirection_model_from is not None:
             self.geometry_stereo_combiner = StereoCombiner.from_name(
@@ -549,6 +594,7 @@ class MonoPredictCTLearnModel(PredictCTLearnModel):
                 direction_feature_vectors,
                 impact_feature_vectors,
                 xmax_feature_vectors,
+                first_int_depth_feature_vectors,
             )
             # Loop over the selected telescopes and store the feature vectors
             # for each telescope in the output file. The feature vectors are stored

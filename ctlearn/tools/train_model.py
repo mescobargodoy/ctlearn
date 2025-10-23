@@ -89,6 +89,17 @@ class TrainCTLearnModel(Tool):
         --DLImageReader.image_mapper_type=OversamplingMapper \\
         --output /path/to/your/xmax/ \\
         --reco xmax \\
+    
+    To train a CTLearn model for the regression of the primary particle
+    first interaction depth:
+    > ctlearn-train-model \\
+        --signal /path/to/your/muons_dl1_dir/ \\
+        --pattern-signal "muon_*_run1.dl1.h5" \\
+        --pattern-signal "muon_*_run10.dl1.h5" \\
+        --DLImageReader.channels=cleaned_image \\
+        --DLImageReader.image_mapper_type=OversamplingMapper \\
+        --output /path/to/your/first_int_depth/ \\
+        --reco first_int_depth \\
 
     To train a CTLearn model for the regression of the primary particle
     arrival direction based on the offsets in camera coordinates:
@@ -174,7 +185,7 @@ class TrainCTLearnModel(Tool):
     ).tag(config=True)
 
     reco_tasks = List(
-        trait=CaselessStrEnum(["type", "energy", "cameradirection", "skydirection", "impact", "xmax"]),
+        trait=CaselessStrEnum(["type", "energy", "cameradirection", "skydirection", "impact", "xmax", "first_int_depth"]),
         allow_none=False,
         help=(
             "List of reconstruction tasks to perform. "
@@ -184,6 +195,7 @@ class TrainCTLearnModel(Tool):
             "'skydirection': regression of the primary particle arrival direction in sky coordinates"
             "'impact': regression of the primary particle core position on the ground (impact point)"
             "'xmax': regression of the primary particle shower maximum"
+            "'first_int_depth': regression of the primary particle first interaction depth"
         )
     ).tag(config=True)
 
@@ -563,6 +575,11 @@ class TrainCTLearnModel(Tool):
                 reduction="sum_over_batch_size"
             )
             metrics["xmax"] = keras.metrics.MeanAbsoluteError(name="mae_xmax")
+        if "first_int_depth" in self.reco_tasks:
+            losses["first_int_depth"] = keras.losses.MeanAbsoluteError(
+                reduction="sum_over_batch_size"
+            )
+            metrics["first_int_depth"] = keras.metrics.MeanAbsoluteError(name="mae_first_int_depth")
         if "skydirection" in self.reco_tasks:
             losses["skydirection"] = keras.losses.MeanAbsoluteError(
                 reduction="sum_over_batch_size"

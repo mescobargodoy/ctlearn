@@ -136,7 +136,7 @@ class PredictCTLearnModel(Tool):
         Create a table with NaNs for missing predictions.
     _store_pointing(all_identifiers)
         Store the telescope pointing table from to the output file.
-    _create_feature_vectors_table(example_identifiers, nonexample_identifiers, classification_feature_vectors, energy_feature_vectors, direction_feature_vectors, impact_feature_vectors, xmax_feature_vectors)
+    _create_feature_vectors_table(example_identifiers, nonexample_identifiers, classification_feature_vectors, energy_feature_vectors, direction_feature_vectors, impact_feature_vectors, xmax_feature_vectors, first_int_depth_feature_vectors)
         Create the table for the DL1 feature vectors.
     """
 
@@ -252,6 +252,18 @@ class PredictCTLearnModel(Tool):
         file_ok=True,
     ).tag(config=True)
 
+    load_first_int_depth_model_from = Path(
+        default_value=None,
+        help=(
+            "Path to a Keras model file (Keras3) or directory (Keras2) for the regression "
+            "of the primary particle first interaction depth."
+        ),
+        allow_none=True,
+        exists=True,
+        directory_ok=True,
+        file_ok=True,
+    ).tag(config=True)
+
     load_cameradirection_model_from = Path(
         default_value=None,
         help=(
@@ -311,6 +323,7 @@ class PredictCTLearnModel(Tool):
         ("e", "energy_model"): "PredictCTLearnModel.load_energy_model_from",
         ("p", "impact_model"): "PredictCTLearnModel.load_impact_model_from",
         ("x", "xmax_model"): "PredictCTLearnModel.load_xmax_model_from",
+        ("f", "first_int_depth"): "PredictCTLearnModel.load_first_int_depth_model_from",
         (
             "d",
             "cameradirection_model",
@@ -638,6 +651,20 @@ class PredictCTLearnModel(Tool):
         xmax_table = example_identifiers.copy()
         xmax_table.add_column(predict_data["xmax"].T[0], name=f"{self.prefix}_tel_xmax")
         return xmax_table, feature_vectors
+
+    def _predict_first_int_depth(self, example_identifiers):
+        """
+        Predict the first interaction depth of the primary particle.
+        """
+        self.log.info("Predicting for the regression of the primary particle first interaction depth...")
+        # Predict the data using the loaded first_int_depth_model
+        predict_data, feature_vectors = self._predict_with_model(
+            self.load_first_int_depth_model_from
+        )
+        # Create prediction table and add the predicted first interaction depth
+        first_int_depth_table = example_identifiers.copy()
+        first_int_depth_table.add_column(predict_data["first_int_depth"].T[0], name=f"{self.prefix}_tel_first_int_depth")
+        return first_int_depth_table, feature_vectors
 
     def _predict_cameradirection(self, example_identifiers):
         """
@@ -982,6 +1009,7 @@ class PredictCTLearnModel(Tool):
         direction_feature_vectors=None,
         impact_feature_vectors=None,
         xmax_feature_vectors=None,
+        first_int_depth_feature_vectors=None,
     ):
         """
         Create the table for the DL1 feature vectors.
@@ -1006,6 +1034,8 @@ class PredictCTLearnModel(Tool):
             Array containing the impact feature vectors.
         xmax_feature_vectors : np.ndarray or None
             Array containing the xmax feature vectors.
+        first_int_depth_feature_vectors : np.ndarray or None
+            Array containing the first interaction depth feature vectors.
 
         Returns:
         --------
@@ -1087,6 +1117,19 @@ class PredictCTLearnModel(Tool):
                     (
                         len(nonexample_identifiers),
                         xmax_feature_vectors.shape[1],
+                    )
+                )
+        if first_int_depth_feature_vectors is not None:
+            is_valid_col = ~np.isnan(np.min(first_int_depth_feature_vectors, axis=1), dtype=bool)
+            feature_vector_table.add_column(
+                first_int_depth_feature_vectors, name=f"{self.prefix}_tel_first_int_depth_feature_vectors"
+            )
+            if nonexample_identifiers is not None:
+                columns_list.append(f"{self.prefix}_tel_first_int_depth_feature_vectors")
+                shapes_list.append(
+                    (
+                        len(nonexample_identifiers),
+                        first_int_depth_feature_vectors.shape[1],
                     )
                 )
         # Produce output table with NaNs for missing predictions

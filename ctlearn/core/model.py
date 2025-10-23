@@ -89,11 +89,12 @@ class CTLearnModel(Component):
             "skydirection": [512, 256, 2],
             "impact": [512, 256, 2],
             "xmax": [512, 256, 1],
+            "first_int_depth": [512, 256, 1],
         },
         allow_none=False,
         help=(
             "Dictionary containing the number of neurons in the fully connected head for each "
-            "task ('type', 'energy', 'cameradirection', 'skydirection', 'impact', 'xmax'). Note: The number of neurons in the last layer "
+            "task ('type', 'energy', 'cameradirection', 'skydirection', 'impact', 'xmax', 'first_int_depth'). Note: The number of neurons in the last layer "
             "must match the number of classes or the number of reconstructed values."
         ),
     ).tag(config=True)
@@ -106,12 +107,13 @@ class CTLearnModel(Component):
             "skydirection": "tanh",
             "impact": "tanh",
             "xmax": "relu",
+            "first_int_depth": "relu",
         },
         allow_none=False,
         help=(
             "Dictionary containing the activation function for the fully connected head for each "
-            "task ('type', 'energy', 'cameradirection', 'skydirection', 'impact', 'xmax'). Note: The default activation functions "
-            "are 'relu' for 'type', 'energy' and 'xmax' tasks, and 'tanh' for 'cameradirection', 'skydirection' and 'impact' tasks. "
+            "task ('type', 'energy', 'cameradirection', 'skydirection', 'impact', 'xmax', 'first_int_depth'). Note: The default activation functions "
+            "are 'relu' for 'type', 'energy', 'xmax' and 'first_int_depth' tasks, and 'tanh' for 'cameradirection', 'skydirection' and 'impact' tasks. "
             "The 'type' task uses 'softmax' as the final activation function."
         ),
     ).tag(config=True)
