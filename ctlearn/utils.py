@@ -5,8 +5,10 @@ from ctapipe.core.traits import TraitError
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.instrument.optics import FocalLengthKind
 
+import tensorflow as tf
+from tensorflow.keras.losses import Loss
 
-__all__ = ["get_lst1_subarray_description", "validate_trait_dict"]
+__all__ = ["get_lst1_subarray_description", "validate_trait_dict", "RootMeanSquaredErrorLoss"]
 
 def get_lst1_subarray_description(focal_length_choice=FocalLengthKind.EFFECTIVE):
     """
@@ -47,3 +49,14 @@ def validate_trait_dict(dict, required_keys):
     if missing_keys:
         raise TraitError(f"Dict is missing required key(s): {', '.join(missing_keys)}")
     return True
+
+class RootMeanSquaredErrorLoss(Loss):
+    def __init__(self, name="root_mean_squared_error_loss", **kwargs):
+        super().__init__(name=name, **kwargs)
+
+    def call(self, y_true, y_pred):
+        return tf.sqrt(tf.reduce_mean(tf.square(y_pred - y_true)))
+
+    def get_config(self):
+        config = super().get_config()
+        return config

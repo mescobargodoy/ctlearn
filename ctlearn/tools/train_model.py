@@ -26,7 +26,7 @@ from ctapipe.core.traits import (
 from dl1_data_handler.reader import DLDataReader
 from ctlearn.core.loader import DLDataLoader
 from ctlearn.core.model import CTLearnModel
-from ctlearn.utils import validate_trait_dict
+from ctlearn.utils import validate_trait_dict, RootMeanSquaredErrorLoss
 
 
 class TrainCTLearnModel(Tool):
@@ -571,15 +571,15 @@ class TrainCTLearnModel(Tool):
             )
             metrics["impact"] = keras.metrics.MeanAbsoluteError(name="mae_impact")
         if "xmax" in self.reco_tasks:
-            losses["xmax"] = keras.losses.MeanAbsoluteError(
+            losses["xmax"] = RootMeanSquaredErrorLoss(
                 reduction="sum_over_batch_size"
             )
-            metrics["xmax"] = keras.metrics.MeanAbsoluteError(name="mae_xmax")
+            metrics["xmax"] = keras.metrics.RootMeanSquaredError(name="rmse_xmax")
         if "first_int_depth" in self.reco_tasks:
-            losses["first_int_depth"] = keras.losses.MeanAbsoluteError(
+            losses["first_int_depth"] = RootMeanSquaredErrorLoss(
                 reduction="sum_over_batch_size"
             )
-            metrics["first_int_depth"] = keras.metrics.MeanAbsoluteError(name="mae_first_int_depth")
+            metrics["first_int_depth"] = keras.metrics.RootMeanSquaredError(name="rmse_first_int_depth")
         if "skydirection" in self.reco_tasks:
             losses["skydirection"] = keras.losses.MeanAbsoluteError(
                 reduction="sum_over_batch_size"
